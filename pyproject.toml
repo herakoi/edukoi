@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.isort]
+known_third_party = ["mediapipe","mediapipe-silicon"]
+
+[tool.setuptools]
+packages = ["edukoi"]
+
+[project]
+name = "edukoi"
+version = "0.1.0"
+authors = [
+  { name="Michele Ginolfi", email="micheleginolfi@gmail.com" },
+  { name="Luca Di Mascolo", email="lucadimascolo@gmail.com" },
+]
+description = "A sonification tool"
+readme = "README.md"
+requires-python = ">=3.7"
+license = { text = "MIT License" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Development Status :: 4 - Beta",
+    "Operating System :: OS Independent",
+]
+dependencies = ["mido>=1.2","python-rtmidi>=1.4","opencv-python>=4.6","numpy>=1.23","mingus"]
+
+[project.urls]
+"Homepage" = "https://github.com/lucadimascolo/edukoi"
+"Bug Tracker" = "https://github.com/lucadimascolo/edukoi/issues"
+
+[project.scripts]
+edukoi = "edukoi:basic"
