@@ -8,3 +8,7 @@ cd edukoi
 python -m pip install -e .
 ```
 
+You than need to install the `fluidsynth` library as:
+```
+conda install -c conda-forge fluidsynth
+```
