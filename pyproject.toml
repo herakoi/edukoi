@@ -33,3 +33,4 @@ dependencies = ["mido>=1.2","python-rtmidi>=1.4","opencv-python>=4.6","numpy>=1.
 
 [project.scripts]
 edukoi = "edukoi:basic"
+edukoi-test = "edukoi:test"

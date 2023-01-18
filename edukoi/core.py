@@ -9,30 +9,39 @@ import mediapipe as mp
 import tkinter
 import tkinter.filedialog as filedialog
 
+from pynput import keyboard
+from pynput.keyboard import Key
+
 import time
 import sys
 import os
 
 from mingus.midi import fluidsynth
 from mingus.midi import pyfluidsynth
-fluidsynth.init('{0}/support/FluidR3_GM.sf2'.format(os.path.dirname(__file__)))
-
+fluidsynth.init('{0}/support/edukoi.sf2'.format(os.path.dirname(__file__)))
 
 vlims_ = (40,127) 
-flims_ = (48, 95) # C2-B5
+flims_ = (63, 63, 63) # C2-B5
 
 root = tkinter.Tk()
 scrw = root.winfo_screenwidth()
 scrh = root.winfo_screenheight()
 root.withdraw()
 
+global pressed; pressed = None
+
 # Convert BGR image into HSV
 # -------------------------------------
 class gethsv:
   def __init__(self,inp):
     self.bgr = cv2.imread(inp)
+
+    for i in range(3):
+      self.bgr[...,i][self.bgr[...,i]>200] = 255
+      self.bgr[...,i][self.bgr[...,i]<200] = 0
+
     self.hsv = cv2.cvtColor(self.bgr,cv2.COLOR_BGR2HSV)
-    
+
     self.mono = np.logical_and((self.bgr[...,0]==self.bgr[...,1]).all(),
                                (self.bgr[...,1]==self.bgr[...,2]).all())
 
@@ -61,19 +70,35 @@ def nametopitch(name):
 
     return 12*(octave+1)+pitch_map[pitch]+offset
 
+# Keyboard press
+# -------------------------------------
+def on_press(key):
+  global pressed
+  if key == Key.right: pressed = 'right'
+  if key == Key.left:  pressed = 'left'
+  print(pressed)
+
 # Build the edukoi player
 # =====================================
 class start:
-  def __init__(self,image=None,mode='single',port={},video=0,box=2,**kwargs):
-  
+  def __init__(self,image=None,show=True,mode='single',port={},video=0,box=2,**kwargs):
+
+    global pressed
+
+    self.listener = keyboard.Listener(on_press=on_press)
+    self.listener.start()  
+
     if image is None:
       tkinter.Tk().withdraw()
       imgpath = filedialog.askopenfilenames()
         
       if len(imgpath)<1: sys.exit(1)
-
-      imgpath = imgpath[0]
+    # imgpath = imgpath[0]
     else: imgpath = image
+
+    self.imglist = False if len(imgpath)==1 else True
+
+    imginit = 0
 
     if mode not in ['single','adaptive','scan']:
       raise NotImplementedError('"{0}" mode is unknown'.format(mode))
@@ -82,42 +107,49 @@ class start:
 
   # Start capture from webcam
   # -------------------------------------
-    self.opvideo = cv2.VideoCapture(video)
-    self.opmusic = gethsv(imgpath)
+    while True:
+      self.opvideo = cv2.VideoCapture(video)
+      self.opmusic = gethsv(imgpath[imginit])
 
-    cv2.namedWindow('imframe',cv2.WINDOW_NORMAL)
+      cv2.namedWindow('imframe',cv2.WINDOW_NORMAL)
 
-    self.mphands = mp.solutions.hands
-    self.mpdraws = mp.solutions.drawing_utils
-    self.mpstyle = mp.solutions.drawing_styles
+      self.mphands = mp.solutions.hands
+      self.mpdraws = mp.solutions.drawing_utils
+      self.mpstyle = mp.solutions.drawing_styles
 
-    self.opindex = 8
-    self.opthumb = 4
+      self.opindex = 8
+      self.opthumb = 4
+      
+      if mode=='adaptive':
+        self.oppatch = None
+      else:
+        self.oppatch = np.minimum(self.opmusic.w,self.opmusic.h)
+        self.oppatch = int(np.clip((box/100)*self.oppatch,2,None))
+      
+      self.opcolor = {'Left': (0,255,  0), 
+                     'Right': (0,255,255)}
+
+      if 'volume' in kwargs:
+        vlims = (np.interp(kwargs['volume'],(0,100),(0,127)),127)
+      else: vlims = vlims_
+
+      if 'notes' in kwargs:
+        flims = (nametopitch(kwargs['notes'][0]),
+                 nametopitch(kwargs['notes'][1]),
+                 nametopitch(kwargs['notes'][2]))
+      else: flims = flims_
     
-    if mode=='adaptive':
-      self.oppatch = None
-    else:
-      self.oppatch = np.minimum(self.opmusic.w,self.opmusic.h)
-      self.oppatch = int(np.clip((box/100)*self.oppatch,2,None))
-    
-    self.opcolor = {'Left': (0,255,  0), 
-                   'Right': (0,255,255)}
+      fluidsynth.set_instrument(0,2); fluidsynth.pan(0,  0)
+      fluidsynth.set_instrument(1,0); fluidsynth.pan(1, 50)
+      fluidsynth.set_instrument(2,1); fluidsynth.pan(2,100)
 
-    if 'volume' in kwargs:
-      vlims = (np.interp(kwargs['volume'],(0,100),(0,127)),127)
-    else: vlims = vlims_
+      self.run(show,mode,vlims=vlims,flims=flims,**kwargs)
 
-    if 'notes' in kwargs:
-      flims = (nametopitch(kwargs['notes'][0]),
-               nametopitch(kwargs['notes'][1]))
-    else: flims = flims_
-  
-    fluidsynth.set_instrument(0,124); fluidsynth.pan(0,  0)
-    fluidsynth.set_instrument(1, 40); fluidsynth.pan(1, 50)
-    fluidsynth.set_instrument(2,126); fluidsynth.pan(2,100)
-
-    self.run(mode,vlims=vlims,flims=flims,**kwargs)
-
+      if pressed=='right' and imginit<(len(imgpath)-1):
+        imginit += 1
+      elif pressed=='left' and imginit>0:
+        imginit -= 1
+      pressed = None
 
 # Convert H and B to note and loudness
 # =====================================
@@ -129,10 +161,11 @@ class start:
       vmidi = int(np.interp(vmidi,(img.min(),img.max()),clip))
       return vmidi
 
-    fb = getval(self.opmusic.bgr[...,0],flims)
-    fg = getval(self.opmusic.bgr[...,1],flims)
-    fr = getval(self.opmusic.bgr[...,2],flims)
+    fb = getval(self.opmusic.bgr[...,0],(flims[0],flims[0]))
+    fg = getval(self.opmusic.bgr[...,1],(flims[1],flims[1]))
+    fr = getval(self.opmusic.bgr[...,2],(flims[2],flims[2]))
 
+    print(fb,fg,fr)
     vb = getval(self.opmusic.bgr[...,0],vlims)
     vg = getval(self.opmusic.bgr[...,1],vlims)
     vr = getval(self.opmusic.bgr[...,2],vlims)
@@ -171,7 +204,7 @@ class start:
 
 # Single-user mode
 # =====================================
-  def run(self,mode='single',vlims=vlims_,flims=flims_,**kwargs):
+  def run(self,show=True,mode='single',vlims=vlims_,flims=flims_,**kwargs):
     ophands = self.mphands.Hands(max_num_hands=2 if mode=='scan' else 1)
 
     onmusic = False
@@ -281,13 +314,13 @@ class start:
       else: fluidsynth.stop_everything()
 
       cv2.imshow('imframe',opframe)
-      cv2.imshow('immusic',immusic)
+      if show: cv2.imshow('immusic',immusic)
       
       imgw = cv2.getWindowImageRect('imframe')[2]
 
       cv2.moveWindow('imframe',scrw-imgw,0)
 
-      if cv2.waitKey(1) & 0xFF == ord('q'): break
+      if (cv2.waitKey(1) & 0xFF == ord('q')) or (self.imglist and pressed is not None): break
 
     self.opvideo.release()
     cv2.destroyAllWindows()
