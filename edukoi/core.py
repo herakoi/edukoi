@@ -96,6 +96,9 @@ class start:
     # imgpath = imgpath[0]
     else: imgpath = image
 
+    if isinstance(imgpath,str):
+      imgpath = [imgpath]
+
     self.imglist = False if len(imgpath)==1 else True
 
     imginit = 0
