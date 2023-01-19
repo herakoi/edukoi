@@ -1,7 +1,27 @@
 # edukoi
 
 ## Installation
-To install `edukoi`, you can do the following: 
+Before building `edukoi`, let us install some key dependencies.
+First, you need to get the `fluidsynth` library:
+
+```
+conda install -c conda-forge fluidsynth
+```
+
+
+Finally, you need to install `mediapipe` as:
+
+```
+python -m pip install mediapipe
+```
+
+If you want to run `edukoi` on an Apple computer with an Apple Silicon chip, you should instead do:
+
+```
+python -m pip install mediapipe-silicon
+```
+
+Finally, to install `edukoi`, you can do the following: 
 
 ```
 git clone https://github.com/lucadimascolo/edukoi.git
@@ -9,22 +29,13 @@ cd edukoi
 python -m pip install -e .
 ```
 
-You than need to install the `fluidsynth` library as:
-```
-conda install -c conda-forge fluidsynth
-```
-
-Finally, you need to install `mediapipe`,
+### Common issues
+We observed that the `opencv-python` library has some compatibility issues with older operating systems (e.g., earlier than MacOS 11 Big Sur in the case of Apple machines). In such a case, installing a version of `opencv-python` earlier than `4.0` seems to solve the issue:
 
 ```
-python -m pip install mediapipe
+python -m pip install --force-reinstall "opencv-python<4"
 ```
 
-If you are running `edukoi` on an Apple computer with an Apple chip, you should instead do
-
-```
-python -m pip install mediapipe-silicon
-```
 
 ## Running `edukoi`
 From the `conda` within which you installed `edukoi`, simply type 
