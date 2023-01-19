@@ -1,5 +1,8 @@
 # edukoi
 
+Education-tailored version of [`herakoi`](https://github.com/lucadimascolo/herakoi) — a motion-sensing experiment in the context of image sonification
+
+
 ## Installation
 Before building `edukoi`, let us install some key dependencies.
 First, you need to get the `fluidsynth` library:
