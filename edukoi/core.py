@@ -16,17 +16,15 @@ import time
 import sys
 import os
 
-from mingus.midi import fluidsynth
-from mingus.midi import pyfluidsynth
-fluidsynth.init('{0}/support/edukoi.sf2'.format(os.path.dirname(__file__)))
-
 vlims_ = (40,127) 
-flims_ = (63, 63, 63) # C2-B5
+flims_ = (63,63,63) # C2-B5
 
 root = tkinter.Tk()
 scrw = root.winfo_screenwidth()
 scrh = root.winfo_screenheight()
 root.withdraw()
+
+import pygame; pygame.init()
 
 global pressed; pressed = None
 
@@ -137,10 +135,11 @@ class start:
                  nametopitch(kwargs['notes'][1]),
                  nametopitch(kwargs['notes'][2]))
       else: flims = flims_
-    
-      fluidsynth.set_instrument(0,2); fluidsynth.pan(0,  0)
-      fluidsynth.set_instrument(1,0); fluidsynth.pan(1, 50)
-      fluidsynth.set_instrument(2,1); fluidsynth.pan(2,100)
+
+
+      self.opsound = {'r': {'sound': pygame.mixer.Sound('{0}/support/Campfire.wav'.format(os.path.dirname(__file__))), 'channel': 0},
+                      'g': {'sound': pygame.mixer.Sound('{0}/support/Birds.wav'.format(os.path.dirname(__file__))),    'channel': 1},
+                      'b': {'sound': pygame.mixer.Sound('{0}/support/Bubbles.wav'.format(os.path.dirname(__file__))),  'channel': 2}}
 
       self.run(show,mode,vlims=vlims,flims=flims,**kwargs)
 
@@ -164,7 +163,6 @@ class start:
     fg = getval(self.opmusic.bgr[...,1],(flims[1],flims[1]))
     fr = getval(self.opmusic.bgr[...,2],(flims[2],flims[2]))
 
-    print(fb,fg,fr)
     vb = getval(self.opmusic.bgr[...,0],vlims)
     vg = getval(self.opmusic.bgr[...,1],vlims)
     vr = getval(self.opmusic.bgr[...,2],vlims)
@@ -201,6 +199,13 @@ class start:
     else:
       return image
 
+# Shut down all channels
+# =====================================
+  def panic(self):
+    pygame.mixer.Channel(self.opsound['r']['channel']).set_volume(0.00,0.00)
+    pygame.mixer.Channel(self.opsound['g']['channel']).set_volume(0.00,0.00)
+    pygame.mixer.Channel(self.opsound['b']['channel']).set_volume(0.00,0.00)
+
 # Single-user mode
 # =====================================
   def run(self,show=True,mode='single',vlims=vlims_,flims=flims_,**kwargs):
@@ -215,7 +220,13 @@ class start:
     offtime = kwargs.get('off',0.05)
     tictime = time.time()
 
+    self.panic()
+    pygame.mixer.Channel(self.opsound['r']['channel']).play(self.opsound['r']['sound'],loops=-1)
+    pygame.mixer.Channel(self.opsound['g']['channel']).play(self.opsound['g']['sound'],loops=-1)
+    pygame.mixer.Channel(self.opsound['b']['channel']).play(self.opsound['b']['sound'],loops=-1)
+
     while True:
+
       _, opframe = self.opvideo.read()
 
       opframe = self.rescale(opframe)
@@ -294,23 +305,26 @@ class start:
               bhmidiv_g = rhmidiv_g if bhmidiv_g is None else int(0.50*(rhmidiv_g+bhmidiv_g))
               bhmidiv_r = rhmidiv_r if bhmidiv_r is None else int(0.50*(rhmidiv_r+bhmidiv_r))
 
+            bhmidiv_b /= 127
+            bhmidiv_g /= 127
+            bhmidiv_r /= 127
+
         if opmodes in ['single','adaptive']:
           if (bhmidif_r is not None) and (bhmidif_g is not None) and (bhmidif_b is not None):
             if time.time()-tictime>toctime and not onmusic:
-              fluidsynth.play_Note(bhmidif_r,0,bhmidiv_r)
-              fluidsynth.play_Note(bhmidif_g,1,bhmidiv_g)
-              fluidsynth.play_Note(bhmidif_b,2,bhmidiv_b)
+              pygame.mixer.Channel(self.opsound['r']['channel']).set_volume(bhmidiv_r,     0.00)
+              pygame.mixer.Channel(self.opsound['g']['channel']).set_volume(bhmidiv_g,bhmidiv_g)
+              pygame.mixer.Channel(self.opsound['b']['channel']).set_volume(     0.00,bhmidiv_b)
 
               pxmusicold = pxmusic
               onmusic = True
 
             if time.time()-tictime>toctime+offtime and np.hypot(pxmusicold[0]-pxmusic[0],pxmusicold[1]-pxmusic[1])>pxshift:
-              fluidsynth.stop_everything()
               onmusic = False
 
               tic = time.time()
-          else: fluidsynth.stop_everything()
-      else: fluidsynth.stop_everything()
+          else: self.panic()
+      else: self.panic()
 
       cv2.imshow('imframe',opframe)
       if show: cv2.imshow('immusic',immusic)

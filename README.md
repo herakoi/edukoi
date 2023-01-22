@@ -5,14 +5,7 @@ Education-tailored version of [`herakoi`](https://github.com/lucadimascolo/herak
 
 ## Installation
 Before building `edukoi`, let us install some key dependencies.
-First, you need to get the `fluidsynth` library:
-
-```
-conda install -c conda-forge fluidsynth
-```
-
-
-Finally, you need to install `mediapipe` as:
+First, you need to install `mediapipe` as:
 
 ```
 python -m pip install mediapipe
@@ -24,7 +17,7 @@ If you want to run `edukoi` on an Apple computer with an Apple Silicon chip, you
 python -m pip install mediapipe-silicon
 ```
 
-Finally, to install `edukoi`, you can do the following: 
+Then, to install `edukoi`, you can do the following: 
 
 ```
 git clone https://github.com/lucadimascolo/edukoi.git

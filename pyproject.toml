@@ -25,7 +25,7 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Operating System :: OS Independent",
 ]
-dependencies = ["mido","python-rtmidi","opencv-python","numpy","mingus","pynput"]
+dependencies = ["opencv-python","pygame","numpy","pynput"]
 
 [project.urls]
 "Homepage" = "https://github.com/lucadimascolo/edukoi"
