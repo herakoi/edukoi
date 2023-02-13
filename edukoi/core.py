@@ -153,11 +153,14 @@ class start:
 # =====================================
   def getmex(self,posx,box,vlims=vlims_,flims=flims_):
     def getval(img,clip):
-      val = np.median(img[np.clip(posx[1]-box[1]//2,0,self.opmusic.h-1):np.clip(posx[1]+box[1]//2,0,self.opmusic.h-1),
-                          np.clip(posx[0]-box[0]//2,0,self.opmusic.w-1):np.clip(posx[0]+box[0]//2,0,self.opmusic.w-1)])
-      vmidi = 0 if np.isnan(val) else val
-      vmidi = int(np.interp(vmidi,(img.min(),img.max()),clip))
-      return vmidi
+      if np.all(img==0):
+        return 0
+      else:
+        val = np.median(img[np.clip(posx[1]-box[1]//2,0,self.opmusic.h-1):np.clip(posx[1]+box[1]//2,0,self.opmusic.h-1),
+                            np.clip(posx[0]-box[0]//2,0,self.opmusic.w-1):np.clip(posx[0]+box[0]//2,0,self.opmusic.w-1)])
+        vmidi = 0 if np.isnan(val) else val
+        vmidi = int(np.interp(vmidi,(img.min(),img.max()),clip))
+        return vmidi
 
     fb = getval(self.opmusic.bgr[...,0],(flims[0],flims[0]))
     fg = getval(self.opmusic.bgr[...,1],(flims[1],flims[1]))
