@@ -28,15 +28,25 @@ import pygame; pygame.init()
 
 global pressed; pressed = None
 
+sref = 0.20
+
 # Convert BGR image into HSV
 # -------------------------------------
 class gethsv:
-  def __init__(self,inp):
+  def __init__(self,inp,renorm=False):
     self.bgr = cv2.imread(inp)
 
-    for i in range(3):
-      self.bgr[...,i][self.bgr[...,i]>200] = 255
-      self.bgr[...,i][self.bgr[...,i]<200] = 0
+    self.h, self.w, _ = self.bgr.shape
+
+    if   self.h >  self.w: self.bgr = cv2.resize(self.bgr,(int(scrh*self.w/self.h,int(scrh))))
+    elif self.h <= self.w: self.bgr = cv2.resize(self.bgr,(int(scrw),int(scrw*self.h/self.w)))
+
+    self.h, self.w, _ = self.bgr.shape
+
+    if renorm:
+      for i in range(3):
+        self.bgr[...,i][self.bgr[...,i]>200] = 255
+        self.bgr[...,i][self.bgr[...,i]<200] = 0
 
     self.hsv = cv2.cvtColor(self.bgr,cv2.COLOR_BGR2HSV)
 
@@ -47,8 +57,6 @@ class gethsv:
       self.hsv[...,0] = self.hsv[...,2].copy()
     else:
       self.hsv[self.hsv[...,0]>150.00,0] = 0.00
-
-    self.h, self.w, _ = self.bgr.shape
 
 # Convert key name
 # Ported from the pretty-midi package
@@ -78,7 +86,7 @@ def on_press(key):
 # Build the edukoi player
 # =====================================
 class start:
-  def __init__(self,image=None,show=True,mode='single',port={},video=0,box=2,**kwargs):
+  def __init__(self,image=None,show=True,mode='single',port={},video=0,box=2,renorm=False,**kwargs):
 
     global pressed
 
@@ -106,7 +114,7 @@ class start:
   # -------------------------------------
     while True:
       self.opvideo = cv2.VideoCapture(video)
-      self.opmusic = gethsv(imgpath[imginit])
+      self.opmusic = gethsv(imgpath[imginit],renorm)
 
       cv2.namedWindow('imframe',cv2.WINDOW_NORMAL)
 
@@ -139,7 +147,8 @@ class start:
 
       self.opsound = {'r': {'sound': pygame.mixer.Sound('{0}/support/Campfire.wav'.format(os.path.dirname(__file__))), 'channel': 0},
                       'g': {'sound': pygame.mixer.Sound('{0}/support/Birds.wav'.format(os.path.dirname(__file__))),    'channel': 1},
-                      'b': {'sound': pygame.mixer.Sound('{0}/support/Bubbles.wav'.format(os.path.dirname(__file__))),  'channel': 2}}
+                      'b': {'sound': pygame.mixer.Sound('{0}/support/Bubbles.wav'.format(os.path.dirname(__file__))),  'channel': 2},
+                      's': {'sound': pygame.mixer.Sound('{0}/support/Stratosphere.wav'.format(os.path.dirname(__file__))),  'channel': 3}}
 
       self.run(show,mode,vlims=vlims,flims=flims,**kwargs)
 
@@ -208,6 +217,7 @@ class start:
     pygame.mixer.Channel(self.opsound['r']['channel']).set_volume(0.00,0.00)
     pygame.mixer.Channel(self.opsound['g']['channel']).set_volume(0.00,0.00)
     pygame.mixer.Channel(self.opsound['b']['channel']).set_volume(0.00,0.00)
+    pygame.mixer.Channel(self.opsound['s']['channel']).set_volume(sref,sref)
 
 # Single-user mode
 # =====================================
@@ -227,6 +237,7 @@ class start:
     pygame.mixer.Channel(self.opsound['r']['channel']).play(self.opsound['r']['sound'],loops=-1)
     pygame.mixer.Channel(self.opsound['g']['channel']).play(self.opsound['g']['sound'],loops=-1)
     pygame.mixer.Channel(self.opsound['b']['channel']).play(self.opsound['b']['sound'],loops=-1)
+    pygame.mixer.Channel(self.opsound['s']['channel']).play(self.opsound['s']['sound'],loops=-1)
 
     while True:
 
@@ -247,6 +258,8 @@ class start:
       opmodes = mode
 
       if imhands.multi_hand_landmarks:
+        pygame.mixer.Channel(self.opsound['s']['channel']).set_volume(0.00,0.00)
+
         if mode=='scan' and len(imhands.multi_hand_landmarks)==1: opmodes = 'single'
 
         if opmodes=='scan':
@@ -312,6 +325,11 @@ class start:
             bhmidiv_g /= 127
             bhmidiv_r /= 127
 
+        bhmidiv_g *= 0.15
+        bhmidiv_b *= 0.35
+
+        print(bhmidiv_b,bhmidiv_g,bhmidiv_r)
+
         if opmodes in ['single','adaptive']:
           if (bhmidif_r is not None) and (bhmidif_g is not None) and (bhmidif_b is not None):
             if time.time()-tictime>toctime and not onmusic:
@@ -327,7 +345,9 @@ class start:
 
               tic = time.time()
           else: self.panic()
-      else: self.panic()
+      else: 
+        pygame.mixer.Channel(self.opsound['s']['channel']).set_volume(sref,sref)
+        self.panic()
 
       cv2.imshow('imframe',opframe)
       if show: cv2.imshow('immusic',immusic)

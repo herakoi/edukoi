@@ -10,7 +10,7 @@ packages = ["edukoi"]
 
 [project]
 name = "edukoi"
-version = "0.2.1"
+version = "0.2.2"
 authors = [
   { name="Michele Ginolfi", email="micheleginolfi@gmail.com" },
   { name="Luca Di Mascolo", email="lucadimascolo@gmail.com" },
