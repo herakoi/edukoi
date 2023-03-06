@@ -33,4 +33,5 @@ dependencies = ["opencv-python","pygame","numpy","pynput"]
 
 [project.scripts]
 edukoi = "edukoi:basic"
+edukoi-art = "edukoi:art"
 edukoi-test = "edukoi:test"
