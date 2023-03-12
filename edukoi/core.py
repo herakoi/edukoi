@@ -38,7 +38,7 @@ class gethsv:
 
     self.h, self.w, _ = self.bgr.shape
 
-    if   self.h >  self.w: self.bgr = cv2.resize(self.bgr,(int(scrh*self.w/self.h,int(scrh))))
+    if   self.h >  self.w: self.bgr = cv2.resize(self.bgr,(int(scrh*self.w/self.h),int(scrh)))
     elif self.h <= self.w: self.bgr = cv2.resize(self.bgr,(int(scrw),int(scrw*self.h/self.w)))
 
     self.h, self.w, _ = self.bgr.shape
