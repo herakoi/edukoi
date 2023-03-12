@@ -22,6 +22,7 @@ flims_ = (63,63,63) # C2-B5
 root = tkinter.Tk()
 scrw = root.winfo_screenwidth()
 scrh = root.winfo_screenheight()
+fill = 0.90
 root.withdraw()
 
 import pygame; pygame.init()
@@ -38,10 +39,15 @@ class gethsv:
 
     self.h, self.w, _ = self.bgr.shape
 
-    if   self.h >  self.w: self.bgr = cv2.resize(self.bgr,(int(scrh*self.w/self.h),int(scrh)))
-    elif self.h <= self.w: self.bgr = cv2.resize(self.bgr,(int(scrw),int(scrw*self.h/self.w)))
+    if   (self.h/self.w)>(scrh/scrw):
+      self.hr = fill*scrh
+      self.wr = fill*scrh*self.w/self.h
+    elif (self.h/self.w)<=(scrh/scrw):
+      self.hr = fill*scrw*self.h/self.w
+      self.wr = fill*scrw
 
-    self.h, self.w, _ = self.bgr.shape
+    self.hr = int(self.hr)
+    self.wr = int(self.wr)
 
     if renorm:
       for i in range(3):
@@ -117,6 +123,7 @@ class start:
       self.opmusic = gethsv(imgpath[imginit],renorm)
 
       cv2.namedWindow('imframe',cv2.WINDOW_NORMAL)
+      cv2.namedWindow('immusic',cv2.WINDOW_NORMAL)
 
       self.mphands = mp.solutions.hands
       self.mpdraws = mp.solutions.drawing_utils
@@ -351,10 +358,11 @@ class start:
 
       cv2.imshow('imframe',opframe)
       if show: cv2.imshow('immusic',immusic)
-      
+
       imgw = cv2.getWindowImageRect('imframe')[2]
 
       cv2.moveWindow('imframe',scrw-imgw,0)
+      cv2.resizeWindow('immusic',self.opmusic.wr,self.opmusic.hr)
 
       if (cv2.waitKey(1) & 0xFF == ord('q')) or (self.imglist and pressed is not None): break
 
