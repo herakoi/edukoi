@@ -50,9 +50,17 @@ class gethsv:
     self.wr = int(self.wr)
 
     if renorm:
+      maxmask = np.amax(self.bgr,axis=2)
       for i in range(3):
-        self.bgr[...,i][self.bgr[...,i]>200] = 255
-        self.bgr[...,i][self.bgr[...,i]<200] = 0
+        self.bgr[...,i][self.bgr[...,i] <  maxmask-25] = 0
+        self.bgr[...,i][self.bgr[...,i] >= maxmask-25] = 255
+
+    # for i in range(3):
+    #   self.bgr[...,i][self.bgr[...,i]>200] = 255
+    #   self.bgr[...,i][self.bgr[...,i]<200] = 0
+
+      np.amax(self.bgr,axis=2)
+
 
     self.hsv = cv2.cvtColor(self.bgr,cv2.COLOR_BGR2HSV)
 
@@ -176,15 +184,15 @@ class start:
                             np.clip(posx[0]-box[0]//2,0,self.opmusic.w-1):np.clip(posx[0]+box[0]//2,0,self.opmusic.w-1)])
         vmidi = 0 if np.isnan(val) else val
         vmidi = int(np.interp(vmidi,(img.min(),img.max()),clip))
-        return vmidi
+        return vmidi, val
 
-    fb = getval(self.opmusic.bgr[...,0],(flims[0],flims[0]))
-    fg = getval(self.opmusic.bgr[...,1],(flims[1],flims[1]))
-    fr = getval(self.opmusic.bgr[...,2],(flims[2],flims[2]))
+    fb, _fb = getval(self.opmusic.bgr[...,0],(flims[0],flims[0]))
+    fg, _fg = getval(self.opmusic.bgr[...,1],(flims[1],flims[1]))
+    fr, _fr = getval(self.opmusic.bgr[...,2],(flims[2],flims[2]))
 
-    vb = getval(self.opmusic.bgr[...,0],vlims)
-    vg = getval(self.opmusic.bgr[...,1],vlims)
-    vr = getval(self.opmusic.bgr[...,2],vlims)
+    vb, _vb = getval(self.opmusic.bgr[...,0],vlims)
+    vg, _vg = getval(self.opmusic.bgr[...,1],vlims)
+    vr, _vr = getval(self.opmusic.bgr[...,2],vlims)
 
     return [fb, fg, fr], [vb, vg, vr]
 
@@ -265,93 +273,100 @@ class start:
       opmodes = mode
 
       if imhands.multi_hand_landmarks:
-        pygame.mixer.Channel(self.opsound['s']['channel']).set_volume(0.00,0.00)
+        for mi, immarks in enumerate(imhands.multi_hand_landmarks):
+          point = immarks.landmark[self.opindex]
 
-        if mode=='scan' and len(imhands.multi_hand_landmarks)==1: opmodes = 'single'
-
-        if opmodes=='scan':
-          pxmusic = [0,0,50]
-          for mi, immarks in enumerate(imhands.multi_hand_landmarks):
-            imlabel = imhands.multi_handedness[mi].classification[0].label
-            
-            self.mpdraws.draw_landmarks(immusic,immarks,self.mphands.HAND_CONNECTIONS,None)
-            self.mpdraws.draw_landmarks(opframe,immarks,self.mphands.HAND_CONNECTIONS,None)
-
-            px, py, _ = self.posndraw(immusic,immarks,imlabel,False)
-
-            if imlabel=='Right': pxmusic[0] = px
-            if imlabel=='Left':  pxmusic[1] = py
-
-          cv2.circle(immusic,(pxmusic[0],pxmusic[1]),pxmusic[2],(255,255,255),-1)
-
+        if point.x<0.00 or point.x>1.00 or \
+           point.y<0.00 or point.y>1.00:
+          pygame.mixer.Channel(self.opsound['s']['channel']).set_volume(sref,sref)
+          self.panic()
         else:
-          for mi, immarks in enumerate(imhands.multi_hand_landmarks):
-            imlabel = imhands.multi_handedness[mi].classification[0].label
+          pygame.mixer.Channel(self.opsound['s']['channel']).set_volume(0.00,0.00)
 
-            _       = self.posndraw(opframe,immarks,imlabel,True)
+          if mode=='scan' and len(imhands.multi_hand_landmarks)==1: opmodes = 'single'
 
-            if self.oppatch is None:
-              pxindex = immarks.landmark[self.opindex]
-              pxthumb = immarks.landmark[self.opthumb]
-              pxpatch = [int(np.abs(pxindex.x-pxthumb.x)*immusic.shape[1]),
-                         int(np.abs(pxindex.y-pxthumb.y)*immusic.shape[0])]
+          if opmodes=='scan':
+            pxmusic = [0,0,50]
+            for mi, immarks in enumerate(imhands.multi_hand_landmarks):
+              imlabel = imhands.multi_handedness[mi].classification[0].label
+              
+              self.mpdraws.draw_landmarks(immusic,immarks,self.mphands.HAND_CONNECTIONS,None)
+              self.mpdraws.draw_landmarks(opframe,immarks,self.mphands.HAND_CONNECTIONS,None)
 
-              _ = self.posndraw(immusic,immarks,imlabel,True)
-              pxmusic = [0.50*(pxindex.x+pxthumb.x),0.50*(pxindex.y+pxthumb.y),0.50*(pxindex.z+pxthumb.z)]
-              pxmusic = [int(pxmusic[0]*immusic.shape[1]),
-                         int(pxmusic[1]*immusic.shape[0]),int(pxmusic[2]*300)]
+              px, py, _ = self.posndraw(immusic,immarks,imlabel,False)
 
-              cv2.rectangle(immusic,(int(pxthumb.x*immusic.shape[1]),int(pxthumb.y*immusic.shape[0])),
-                                    (int(pxindex.x*immusic.shape[1]),int(pxindex.y*immusic.shape[0])),self.opcolor[imlabel],1)
-              cv2.circle(immusic,(pxmusic[0],pxmusic[1]),2,self.opcolor[imlabel],-1)
- 
-            else:
-              pxmusic = self.posndraw(immusic,immarks,imlabel,True)
-              pxpatch = [self.oppatch,self.oppatch]
+              if imlabel=='Right': pxmusic[0] = px
+              if imlabel=='Left':  pxmusic[1] = py
 
-            if (opmodes in ['single','adaptive'] and imlabel=='Left') or (opmodes=='party'):
-              bhmidif, bhmidiv = self.getmex(pxmusic,pxpatch,vlims,flims)
-              bhmidif_b, bhmidif_g, bhmidif_r = bhmidif
-              bhmidiv_b, bhmidiv_g, bhmidiv_r = bhmidiv
+            cv2.circle(immusic,(pxmusic[0],pxmusic[1]),pxmusic[2],(255,255,255),-1)
 
-            if (opmodes in ['single','adaptive'] and imlabel=='Right'):
-              rhmidif, rhmidiv = self.getmex(pxmusic,pxpatch,vlims,flims)
+          else:
+            for mi, immarks in enumerate(imhands.multi_hand_landmarks):
+              imlabel = imhands.multi_handedness[mi].classification[0].label
 
-              rhmidif_b, rhmidif_g, rhmidif_r = rhmidif
-              rhmidiv_b, rhmidiv_g, rhmidiv_r = rhmidiv
+              _       = self.posndraw(opframe,immarks,imlabel,True)
 
-              bhmidif_b = rhmidif_b if bhmidif_b is None else int(0.50*(rhmidif_b+bhmidif_b))
-              bhmidif_g = rhmidif_g if bhmidif_g is None else int(0.50*(rhmidif_g+bhmidif_g))
-              bhmidif_r = rhmidif_r if bhmidif_r is None else int(0.50*(rhmidif_r+bhmidif_r))
+              if self.oppatch is None:
+                pxindex = immarks.landmark[self.opindex]
+                pxthumb = immarks.landmark[self.opthumb]
+                pxpatch = [int(np.abs(pxindex.x-pxthumb.x)*immusic.shape[1]),
+                           int(np.abs(pxindex.y-pxthumb.y)*immusic.shape[0])]
 
-              bhmidiv_b = rhmidiv_b if bhmidiv_b is None else int(0.50*(rhmidiv_b+bhmidiv_b))
-              bhmidiv_g = rhmidiv_g if bhmidiv_g is None else int(0.50*(rhmidiv_g+bhmidiv_g))
-              bhmidiv_r = rhmidiv_r if bhmidiv_r is None else int(0.50*(rhmidiv_r+bhmidiv_r))
+                _ = self.posndraw(immusic,immarks,imlabel,True)
+                pxmusic = [0.50*(pxindex.x+pxthumb.x),0.50*(pxindex.y+pxthumb.y),0.50*(pxindex.z+pxthumb.z)]
+                pxmusic = [int(pxmusic[0]*immusic.shape[1]),
+                           int(pxmusic[1]*immusic.shape[0]),int(pxmusic[2]*300)]
 
-            bhmidiv_b /= 127
-            bhmidiv_g /= 127
-            bhmidiv_r /= 127
+                cv2.rectangle(immusic,(int(pxthumb.x*immusic.shape[1]),int(pxthumb.y*immusic.shape[0])),
+                                      (int(pxindex.x*immusic.shape[1]),int(pxindex.y*immusic.shape[0])),self.opcolor[imlabel],1)
+                cv2.circle(immusic,(pxmusic[0],pxmusic[1]),2,self.opcolor[imlabel],-1)
+   
+              else:
+                pxmusic = self.posndraw(immusic,immarks,imlabel,True)
+                pxpatch = [self.oppatch,self.oppatch]
 
-        bhmidiv_g *= 0.15
-        bhmidiv_b *= 0.35
+              if (opmodes in ['single','adaptive'] and imlabel=='Left') or (opmodes=='party'):
+                bhmidif, bhmidiv = self.getmex(pxmusic,pxpatch,vlims,flims)
+                bhmidif_b, bhmidif_g, bhmidif_r = bhmidif
+                bhmidiv_b, bhmidiv_g, bhmidiv_r = bhmidiv
 
-        print(bhmidiv_b,bhmidiv_g,bhmidiv_r)
+              if (opmodes in ['single','adaptive'] and imlabel=='Right'):
+                rhmidif, rhmidiv = self.getmex(pxmusic,pxpatch,vlims,flims)
 
-        if opmodes in ['single','adaptive']:
-          if (bhmidif_r is not None) and (bhmidif_g is not None) and (bhmidif_b is not None):
-            if time.time()-tictime>toctime and not onmusic:
-              pygame.mixer.Channel(self.opsound['r']['channel']).set_volume(bhmidiv_r,     0.00)
-              pygame.mixer.Channel(self.opsound['g']['channel']).set_volume(bhmidiv_g,bhmidiv_g)
-              pygame.mixer.Channel(self.opsound['b']['channel']).set_volume(     0.00,bhmidiv_b)
+                rhmidif_b, rhmidif_g, rhmidif_r = rhmidif
+                rhmidiv_b, rhmidiv_g, rhmidiv_r = rhmidiv
 
-              pxmusicold = pxmusic
-              onmusic = True
+                bhmidif_b = rhmidif_b if bhmidif_b is None else int(0.50*(rhmidif_b+bhmidif_b))
+                bhmidif_g = rhmidif_g if bhmidif_g is None else int(0.50*(rhmidif_g+bhmidif_g))
+                bhmidif_r = rhmidif_r if bhmidif_r is None else int(0.50*(rhmidif_r+bhmidif_r))
 
-            if time.time()-tictime>toctime+offtime and np.hypot(pxmusicold[0]-pxmusic[0],pxmusicold[1]-pxmusic[1])>pxshift:
-              onmusic = False
+                bhmidiv_b = rhmidiv_b if bhmidiv_b is None else int(0.50*(rhmidiv_b+bhmidiv_b))
+                bhmidiv_g = rhmidiv_g if bhmidiv_g is None else int(0.50*(rhmidiv_g+bhmidiv_g))
+                bhmidiv_r = rhmidiv_r if bhmidiv_r is None else int(0.50*(rhmidiv_r+bhmidiv_r))
 
-              tic = time.time()
-          else: self.panic()
+              bhmidiv_b /= 127
+              bhmidiv_g /= 127
+              bhmidiv_r /= 127
+
+          bhmidiv_r *= 0.60
+          bhmidiv_g *= 0.20
+          bhmidiv_b *= 0.40
+
+          if opmodes in ['single','adaptive']:
+            if (bhmidif_r is not None) and (bhmidif_g is not None) and (bhmidif_b is not None):
+              if time.time()-tictime>toctime and not onmusic:
+                pygame.mixer.Channel(self.opsound['r']['channel']).set_volume(bhmidiv_r,     0.00)
+                pygame.mixer.Channel(self.opsound['g']['channel']).set_volume(bhmidiv_g,bhmidiv_g)
+                pygame.mixer.Channel(self.opsound['b']['channel']).set_volume(     0.00,bhmidiv_b)
+
+                pxmusicold = pxmusic
+                onmusic = True
+
+              if time.time()-tictime>toctime+offtime and np.hypot(pxmusicold[0]-pxmusic[0],pxmusicold[1]-pxmusic[1])>pxshift:
+                onmusic = False
+
+                tic = time.time()
+            else: self.panic()
       else: 
         pygame.mixer.Channel(self.opsound['s']['channel']).set_volume(sref,sref)
         self.panic()
