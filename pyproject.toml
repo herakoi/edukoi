@@ -6,11 +6,15 @@ build-backend = "setuptools.build_meta"
 known_third_party = ["mediapipe","mediapipe-silicon"]
 
 [tool.setuptools]
-packages = ["edukoi"]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+include = ["edukoi*"]
+exclude = ["scriptsp*"]
 
 [project]
 name = "edukoi"
-version = "0.2.2"
+version = "0.2.3"
 authors = [
   { name="Michele Ginolfi", email="micheleginolfi@gmail.com" },
   { name="Luca Di Mascolo", email="lucadimascolo@gmail.com" },

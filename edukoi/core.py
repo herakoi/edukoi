@@ -131,7 +131,7 @@ class start:
       self.opmusic = gethsv(imgpath[imginit],renorm)
 
       cv2.namedWindow('imframe',cv2.WINDOW_NORMAL)
-      cv2.namedWindow('immusic',cv2.WINDOW_NORMAL)
+      if show: cv2.namedWindow('immusic',cv2.WINDOW_NORMAL)
 
       self.mphands = mp.solutions.hands
       self.mpdraws = mp.solutions.drawing_utils
@@ -348,9 +348,9 @@ class start:
               bhmidiv_g /= 127
               bhmidiv_r /= 127
 
-          bhmidiv_r *= 0.60
-          bhmidiv_g *= 0.20
-          bhmidiv_b *= 0.40
+          bhmidiv_r *= 0.600
+          bhmidiv_g *= 0.075
+          bhmidiv_b *= 0.400
 
           if opmodes in ['single','adaptive']:
             if (bhmidif_r is not None) and (bhmidif_g is not None) and (bhmidif_b is not None):

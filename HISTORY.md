@@ -1,3 +1,7 @@
+# v0.2.3
+- correction of small bug causing the sonified frame to be shown despite the --hide flag
+- library of sample scripts
+
 # v0.2.2
 - introduction of low-pitch sound when hands are not detected
 - rescaling of sonifed image to fit any screen/resolution
