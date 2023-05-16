@@ -10,7 +10,7 @@ include-package-data = false
 
 [tool.setuptools.packages.find]
 include = ["edukoi*"]
-exclude = ["scriptsp*"]
+exclude = ["scripts*"]
 
 [project]
 name = "edukoi"
