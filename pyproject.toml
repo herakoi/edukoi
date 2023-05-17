@@ -29,7 +29,9 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Operating System :: OS Independent",
 ]
-dependencies = ["opencv-python","pygame","numpy","pynput"]
+dependencies = ["opencv-python","pygame","numpy","pynput",
+                'mediapipe; platform_system != "Darwin" or  platform_machine != "arm64"',
+        'mediapipe-silicon; platform_system == "Darwin" and platform_machine == "arm64"']
 
 [project.urls]
 "Homepage" = "https://github.com/lucadimascolo/edukoi"
