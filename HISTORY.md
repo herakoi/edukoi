@@ -1,4 +1,5 @@
 # v0.2.3
+- automatic switch to mediapipe/mediapipe-silicon
 - correction of small bug causing the sonified frame to be shown despite the --hide flag
 - library of sample scripts
 
